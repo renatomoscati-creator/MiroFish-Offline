@@ -1067,7 +1067,19 @@ class ReportAgent:
         except Exception as e:
             logger.error(f"Tool execution failed: {tool_name}, error: {str(e)}")
             return f"Tool execution failed: {str(e)}"
-    
+
+    @staticmethod
+    def _is_result_empty(result_text: str) -> bool:
+        """Return True when a tool result carries no usable data (empty graph or failed call)."""
+        empty_signals = [
+            "Found 0 related results",          # SearchResult / quick_search
+            "Prediction Facts: 0",               # InsightForgeResult (total_facts=0)
+            "Current Valid Facts: 0",            # PanoramaResult (active_count=0)
+            "Tool execution failed:",            # any tool that threw an exception
+            "environment not running",           # interview_agents: sim closed
+        ]
+        return any(sig in result_text for sig in empty_signals)
+
     # Valid tool names set, used for validation when parsing raw JSON fallback
     VALID_TOOL_NAMES = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
 
@@ -1292,6 +1304,8 @@ class ReportAgent:
         tool_calls_count = 0
         max_iterations = 5  # Maximum iterations
         min_tool_calls = 3  # Minimum tool calls
+        effective_min_tool_calls = min_tool_calls  # lowered when graph is empty
+        empty_results_count = 0  # consecutive empty/failed tool results
         conflict_retries = 0  # Consecutive conflicts where tool calls and Final Answer appear simultaneously
         used_tools = set()  # Record tool names already called
         all_tools = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
@@ -1382,7 +1396,7 @@ class ReportAgent:
             # ── Case 1: LLM output Final Answer ──
             if has_final_answer:
                 # Insufficient tool calls, reject and request to continue calling tools
-                if tool_calls_count < min_tool_calls:
+                if tool_calls_count < effective_min_tool_calls:
                     messages.append({"role": "assistant", "content": response})
                     unused_tools = all_tools - used_tools
                     unused_hint = f"(These tools have not been used, recommend using them: {', '.join(unused_tools)}）" if unused_tools else ""
@@ -1390,7 +1404,7 @@ class ReportAgent:
                         "role": "user",
                         "content": REACT_INSUFFICIENT_TOOLS_MSG.format(
                             tool_calls_count=tool_calls_count,
-                            min_tool_calls=min_tool_calls,
+                            min_tool_calls=effective_min_tool_calls,
                             unused_hint=unused_hint,
                         ),
                     })
@@ -1455,6 +1469,18 @@ class ReportAgent:
                 tool_calls_count += 1
                 used_tools.add(call['name'])
 
+                # Track empty/failed results; lower min-tool-call gate when graph is barren
+                if self._is_result_empty(result):
+                    empty_results_count += 1
+                    if empty_results_count >= 2:
+                        effective_min_tool_calls = min(effective_min_tool_calls, tool_calls_count)
+                        logger.info(
+                            f"Section '{section.title}': {empty_results_count} consecutive empty results — "
+                            f"lowering effective_min_tool_calls to {effective_min_tool_calls}"
+                        )
+                else:
+                    empty_results_count = 0  # reset streak on any data-bearing result
+
                 # Build unused tools hint
                 unused_tools = all_tools - used_tools
                 unused_hint = ""
@@ -1478,7 +1504,7 @@ class ReportAgent:
             # ── Case 3: NeitherTool call，nor Final Answer ──
             messages.append({"role": "assistant", "content": response})
 
-            if tool_calls_count < min_tool_calls:
+            if tool_calls_count < effective_min_tool_calls:
                 # Tool callcount insufficient，recommend unused tools
                 unused_tools = all_tools - used_tools
                 unused_hint = f"(These tools have not been used, recommend using them: {', '.join(unused_tools)}）" if unused_tools else ""
@@ -1487,7 +1513,7 @@ class ReportAgent:
                     "role": "user",
                     "content": REACT_INSUFFICIENT_TOOLS_MSG_ALT.format(
                         tool_calls_count=tool_calls_count,
-                        min_tool_calls=min_tool_calls,
+                        min_tool_calls=effective_min_tool_calls,
                         unused_hint=unused_hint,
                     ),
                 })

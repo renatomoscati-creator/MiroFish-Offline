@@ -382,9 +382,82 @@ class IPCHandler:
             return True
 
 
+class ActionJSONLWriter:
+    """Writes agent actions to twitter/actions.jsonl for the Flask monitor thread."""
+
+    def __init__(self, simulation_dir: str, agent_id_to_name: dict):
+        self.simulation_dir = simulation_dir
+        self.agent_id_to_name = agent_id_to_name
+        self._jsonl_path = os.path.join(simulation_dir, "twitter", "actions.jsonl")
+        os.makedirs(os.path.dirname(self._jsonl_path), exist_ok=True)
+        # truncate/create fresh file
+        open(self._jsonl_path, 'w', encoding='utf-8').close()
+        self._last_rowid = 0
+        self._total_actions = 0
+
+    def flush_round(self, round_num: int, simulated_hours: int, db_path: str):
+        """Query DB for new trace rows, write them + round_end event."""
+        if not os.path.exists(db_path):
+            self._write_round_end(round_num, simulated_hours)
+            return
+
+        new_rows = []
+        try:
+            conn = sqlite3.connect(db_path, timeout=5)
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT rowid, user_id, action, info, created_at FROM trace WHERE rowid > ? ORDER BY rowid",
+                (self._last_rowid,)
+            )
+            new_rows = cursor.fetchall()
+            if new_rows:
+                self._last_rowid = new_rows[-1][0]
+            conn.close()
+        except Exception as e:
+            print(f"  [JSONL] DB read error: {e}")
+
+        lines = []
+        for rowid, user_id, action, info_json, created_at in new_rows:
+            try:
+                info = json.loads(info_json) if info_json else {}
+            except Exception:
+                info = {}
+            agent_name = self.agent_id_to_name.get(user_id, f"agent_{user_id}")
+            entry = {
+                "round": round_num,
+                "timestamp": created_at or datetime.now().isoformat(),
+                "agent_id": user_id,
+                "agent_name": agent_name,
+                "action_type": action,
+                "action_args": info.get("args", info),
+                "result": info.get("result"),
+                "success": True,
+            }
+            lines.append(json.dumps(entry, ensure_ascii=False))
+            self._total_actions += 1
+
+        lines.append(self._round_end_line(round_num, simulated_hours))
+
+        with open(self._jsonl_path, 'a', encoding='utf-8') as f:
+            f.write("\n".join(lines) + "\n")
+
+    def write_simulation_end(self, total_rounds: int):
+        entry = {"event_type": "simulation_end", "total_rounds": total_rounds, "total_actions": self._total_actions}
+        with open(self._jsonl_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def _write_round_end(self, round_num: int, simulated_hours: int):
+        with open(self._jsonl_path, 'a', encoding='utf-8') as f:
+            f.write(self._round_end_line(round_num, simulated_hours) + "\n")
+
+    @staticmethod
+    def _round_end_line(round_num: int, simulated_hours: int) -> str:
+        return json.dumps({"event_type": "round_end", "round": round_num, "simulated_hours": simulated_hours}, ensure_ascii=False)
+
+
 class TwitterSimulationRunner:
     """Twitter simulation runner"""
-    
+
     # Twitter available actions (INTERVIEW not included, INTERVIEW can only be triggered manually via ManualAction)
     AVAILABLE_ACTIONS = [
         ActionType.CREATE_POST,
@@ -394,7 +467,7 @@ class TwitterSimulationRunner:
         ActionType.DO_NOTHING,
         ActionType.QUOTE_POST,
     ]
-    
+
     def __init__(self, config_path: str, wait_for_commands: bool = True):
         """
         Initialize simulation runner
@@ -580,7 +653,19 @@ class TwitterSimulationRunner:
             model=model,
             available_actions=self.AVAILABLE_ACTIONS,
         )
-        
+
+        # Build agent_id → name map from profiles CSV for JSONL writer
+        agent_id_to_name = {}
+        try:
+            import csv
+            with open(profile_path, 'r', encoding='utf-8') as pf:
+                reader = csv.DictReader(pf)
+                for i, row in enumerate(reader):
+                    name = row.get('name') or row.get('username') or row.get('user_name') or f"agent_{i}"
+                    agent_id_to_name[i] = name
+        except Exception as e:
+            print(f"  Warning: could not build agent name map: {e}")
+
         # Databasepath
         db_path = self._get_db_path()
         if os.path.exists(db_path):
@@ -598,7 +683,10 @@ class TwitterSimulationRunner:
         
         await self.env.reset()
         print("Environment initialization complete\n")
-        
+
+        # Initialize JSONL writer (IPC bridge to Flask monitor thread)
+        jsonl_writer = ActionJSONLWriter(self.simulation_dir, agent_id_to_name)
+
         # Initialize IPC handler
         self.ipc_handler = IPCHandler(self.simulation_dir, self.env, self.agent_graph)
         self.ipc_handler.update_status("running")
@@ -629,30 +717,39 @@ class TwitterSimulationRunner:
         # Main simulation loop
         print("\nStart simulation loop...")
         start_time = datetime.now()
-        
+        completed_rounds = 0
+
         for round_num in range(total_rounds):
             # Calculate current simulation time
             simulated_minutes = round_num * minutes_per_round
             simulated_hour = (simulated_minutes // 60) % 24
             simulated_day = simulated_minutes // (60 * 24) + 1
-            
+            simulated_hours_total = simulated_minutes // 60
+
             # Get Agents activated this round
             active_agents = self._get_active_agents_for_round(
                 self.env, simulated_hour, round_num
             )
-            
+
             if not active_agents:
+                # Still emit round_end so monitor sees progress
+                jsonl_writer.flush_round(round_num + 1, simulated_hours_total, db_path)
+                completed_rounds += 1
                 continue
-            
+
             # Build action
             actions = {
                 agent: LLMAction()
                 for _, agent in active_agents
             }
-            
+
             # Execute action
             await self.env.step(actions)
-            
+
+            # Flush new trace rows + round_end to JSONL
+            jsonl_writer.flush_round(round_num + 1, simulated_hours_total, db_path)
+            completed_rounds += 1
+
             # Print progress
             if (round_num + 1) % 10 == 0 or round_num == 0:
                 elapsed = (datetime.now() - start_time).total_seconds()
@@ -661,7 +758,10 @@ class TwitterSimulationRunner:
                       f"Round {round_num + 1}/{total_rounds} ({progress:.1f}%) "
                       f"- {len(active_agents)} agents active "
                       f"- elapsed: {elapsed:.1f}s")
-        
+
+        # Write simulation_end event so Flask marks platform as completed
+        jsonl_writer.write_simulation_end(completed_rounds)
+
         total_elapsed = (datetime.now() - start_time).total_seconds()
         print(f"\nSimulation loop completed!")
         print(f"  - Total time: {total_elapsed:.1f}seconds")

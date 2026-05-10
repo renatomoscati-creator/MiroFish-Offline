@@ -1,0 +1,36 @@
+{
+    "data": {
+        "completed_at": "",
+        "created_at": "2026-05-10T13:08:48.237433",
+        "error": null,
+        "graph_id": "70d9f3a4-a1da-4ab6-b52d-964f2e720240",
+        "markdown_content": "",
+        "outline": {
+            "sections": [
+                {
+                    "content": "",
+                    "title": "Initial Reactions and Sentiment Shifts"
+                },
+                {
+                    "content": "",
+                    "title": "Interaction Dynamics Among Agents"
+                },
+                {
+                    "content": "",
+                    "title": "Emerging Trends and Risk Indicators"
+                },
+                {
+                    "content": "",
+                    "title": "Long-term Implications for Financial Stability"
+                }
+            ],
+            "summary": "The simulation reveals that the announcement of an IMF program review conditional on meeting six-month fiscal targets triggers varied reactions across different agent profiles, leading to increased volatility in social media sentiment towards the Argentine peso.",
+            "title": "Social Media Reactions to Argentina Peso Float and IMF Program Review"
+        },
+        "report_id": "report_1a90b4893c1c",
+        "simulation_id": "sim_a1c05bd00884",
+        "simulation_requirement": "Simulate social media reactions to Argentina peso float and IMF programme: how do different agent profiles (retail savers, institutional investors, FX traders, exporters, international creditors, IMF analysts) react, post, and interact on financial Twitter over 3 rounds given the inject variable: IMF programme review passes conditional on 6-month fiscal targets being met",
+        "status": "planning"
+    },
+    "success": true
+}

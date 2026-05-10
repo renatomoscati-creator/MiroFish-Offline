@@ -1,0 +1,27 @@
+TITLE: Argentina Exchange Rate Credibility and Debt Sustainability
+
+PARTICIPANTS AND STAKEHOLDERS
+
+Sofia Mendez is a retail saver based in Buenos Aires who holds peso savings in a local bank account. She has watched the peso depreciate repeatedly over her lifetime and is acutely sensitive to any signal of policy credibility. When the managed float was announced, Sofia Mendez began weighing whether to convert her remaining peso balance into dollars through a broker.
+
+Grupo Financiero Del Sur is an institutional investor managing a fixed-income portfolio with significant exposure to Argentine sovereign bonds. The portfolio managers at Grupo Financiero Del Sur track daily EMBI spreads and adjust duration based on IMF programme milestones. They are currently underweight Argentine duration but watching for a re-entry signal.
+
+Carlos Ibañez is an FX trader at a mid-sized Buenos Aires bank who makes markets in the blue-chip swap rate and the official rate. Carlos Ibañez positions for short-term peso depreciation when exporters are perceived to be delaying FX liquidations, amplifying pressure on the official rate.
+
+Agroexport S.A. is an Argentine soybean and corn exporter with USD receivables sitting in offshore accounts. Agroexport S.A. strategically delays liquidating foreign exchange earnings when it expects further depreciation, which tightens official reserve accumulation and tests the central bank's credibility.
+
+JP Morgan Argentina is the local branch of the international investment bank, acting as an international creditor and underwriter of Argentine sovereign debt. JP Morgan Argentina monitors the fiscal primary surplus and capital controls schedule before advising clients on rolling over maturities.
+
+Ana Rodriguez is a senior IMF analyst covering the Southern Cone. Ana Rodriguez is responsible for assessing whether Argentina's fiscal targets are on track for the six-month programme review. Her analysis directly feeds into whether the IMF board releases the next disbursement tranche.
+
+SECTION 5: Outcome Depends on Credibility and Expectations
+
+Credible float scenario: Capital controls are lifted only after foreign reserves are rebuilt, the fiscal primary surplus holds, and inflation targeting replaces monetary targeting as the nominal anchor. The peso settles at a weaker but bounded level. Overshooting is muted because the expected future spot rate is anchored. Pass-through bites short term but fades. Sovereign spreads continue compressing. Sofia Mendez keeps more pesos. Grupo Financiero Del Sur extends duration. Carlos Ibañez reduces short peso positions. Agroexport S.A. brings forward FX liquidations. JP Morgan Argentina recommends rolling over maturities. Ana Rodriguez confirms fiscal targets are on track.
+
+Non-credible float scenario: Without those preconditions, expected depreciation becomes self-fulfilling depreciation. Sofia Mendez dollarises savings. Carlos Ibañez aggressively shorts pesos in the blue-chip swap. Agroexport S.A. delays FX liquidations further. Grupo Financiero Del Sur exits Argentine bonds. JP Morgan Argentina downgrades Argentine credit outlook. Ana Rodriguez flags fiscal slippage to the IMF board. The trap closes: defend with reserves and run out, or float and validate the inflation everyone already expected.
+
+SECTION 6: Debt Sustainability
+
+Argentina cannot borrow abroad in pesos, the textbook case of original sin. Most public debt is FX-denominated, so any peso depreciation raises the FX-debt-to-GDP ratio mechanically before it affects flows. A non-credible float widens sovereign spreads sharply, raising the dollar cost of rolling over maturities precisely when the primary surplus needed to stabilise debt becomes politically infeasible. Debt does not self-stabilise: depreciation, spreads, and the debt ratio reinforce each other until either fiscal adjustment or external support breaks the loop. JP Morgan Argentina and Grupo Financiero Del Sur both monitor this dynamic closely. Ana Rodriguez's programme review is the key external anchor.
+
+PREDICTION QUESTION: Will Argentina's current managed float stabilise into a credible anchor, or deteriorate into a self-reinforcing depreciation-inflation-spread spiral over the next 12 months?

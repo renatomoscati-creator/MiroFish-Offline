@@ -1,7 +1,7 @@
 # ===========================================
 # MiroFish Backend Dependencies
 # ===========================================
-# Python 3.11+ required
+# Python 3.11+ supported. Python 3.12/3.13: see OASIS section below.
 # Install: pip install -r requirements.txt
 # ===========================================
 
@@ -19,9 +19,18 @@ requests>=2.28.0
 neo4j>=5.15.0
 
 # ============= OASIS 社交媒体模拟 =============
-# OASIS 社交模拟框架
-camel-oasis==0.2.5
-camel-ai==0.2.78
+# camel-ai 0.2.79+ supports Python 3.12/3.13 without restriction.
+# camel-oasis 0.2.5 has a metadata pin of <3.12 but the wheel is pure-Python
+# and works on 3.12/3.13. Install with:
+#   pip install camel-ai>=0.2.79
+#   pip install --no-deps --ignore-requires-python camel-oasis==0.2.5
+#   pip install igraph cairocffi sentence-transformers
+# The lines below work on Python <=3.11 via normal pip install:
+camel-ai>=0.2.79
+# camel-oasis manual install needed on Python 3.12+ (see above)
+igraph>=1.0.0
+cairocffi>=1.7.0
+sentence-transformers>=3.0.0
 
 # ============= 文件处理 =============
 PyMuPDF>=1.24.0

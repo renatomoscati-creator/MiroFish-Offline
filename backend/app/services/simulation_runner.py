@@ -407,6 +407,20 @@ class SimulationRunner:
         action_queue = Queue()
         cls._action_queues[simulation_id] = action_queue
         
+        # Pre-flight: verify camel/oasis are importable before spawning subprocess
+        import importlib.util
+        missing = [pkg for pkg in ("camel", "oasis") if importlib.util.find_spec(pkg) is None]
+        if missing:
+            msg = (
+                f"Missing required package(s): {', '.join(missing)}. "
+                "Run: pip install oasis-ai camel-ai"
+            )
+            logger.error(msg)
+            state.runner_status = RunnerStatus.FAILED
+            state.error = msg
+            cls._save_run_state(state)
+            raise ValueError(msg)
+
         # Start simulation process
         try:
             # Build run command with full paths
@@ -414,7 +428,7 @@ class SimulationRunner:
             #   twitter/actions.jsonl - Twitter action log
             #   reddit/actions.jsonl  - Reddit action log
             #   simulation.log        - Main process log
-            
+
             cmd = [
                 sys.executable,  # Python interpreter
                 script_path,
